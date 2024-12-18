@@ -1,135 +1,190 @@
-import openai
-import requests
-from bs4 import BeautifulSoup
-import pickle
-import os
+import streamlit as st
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import fitz  # PyMuPDF for PDF text extraction
-import streamlit as st
+from PyPDF2 import PdfReader
+import requests
+from bs4 import BeautifulSoup
+import openai
+import os
 
-# Set OpenAI API key (Consider using environment variables for security)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# ----------------------
+# Configuration
+# ----------------------
 
-# Gmail credentials (use environment variables for security)
-gmail_user = os.getenv("GMAIL_USER", "kinelyaydenseo19@gmail.com")
-gmail_password = os.getenv("GMAIL_PASSWORD")
+PDF_PATH = "./Aibytec fine tuned data.pdf"  # Path to your PDF
+WEBSITE_URL = "https://aibytec.com/"  # Target website URL
 
-# Website URL
-url = "https://aibytec.com/"
+# ----------------------
+# Functions
+# ----------------------
 
-# Fetch the webpage content
-response = requests.get(url)
-soup = BeautifulSoup(response.content, 'html.parser')
+# Function to send email
+def send_email(name, email, contact_no, area_of_interest):
+    subject = "New Student Profile Submission"
+    body = f"""
+    New Student Profile Submitted:
 
-# Extract all text from the webpage
-website_text = ' '.join([p.get_text() for p in soup.find_all('p')])
-
-# Extract text from PDF
-def extract_text_from_pdf(pdf_path):
-    pdf_text = ""
+    Name: {name}
+    Email: {email}
+    Contact No.: {contact_no}
+    Area of Interest: {area_of_interest}
+    """
+    message = MIMEMultipart()
+    message['From'] = SENDER_EMAIL
+    message['To'] = RECEIVER_EMAIL
+    message['Subject'] = subject
+    message.attach(MIMEText(body, 'plain'))
     try:
-        doc = fitz.open(pdf_path)
-        for page in doc:
-            pdf_text += page.get_text("text")
-        return pdf_text
-    except Exception as e:
-        print(f"Error extracting text from PDF: {e}")
-        return ""
-
-# Combine the website text and PDF text
-pdf_text = extract_text_from_pdf("/Aibytec fine tuned data.pdf")
-combined_context = website_text + "\n\n" + pdf_text  # Combine website and PDF data
-
-# Function to send email notification
-def send_email(name, email):
-    try:
-        subject = "New User Data from Aibytec Assistant"
-        body = f"Name: {name}\nEmail: {email}"
-        msg = MIMEMultipart()
-        msg["From"] = gmail_user
-        msg["To"] = gmail_user
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain"))
-
-        # Connect to Gmail SMTP server
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
-        server.login(gmail_user, gmail_password)
-        server.send_message(msg)
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, message.as_string())
         server.quit()
-
-        print("Chatbot: User data sent to Gmail successfully!")
+        st.success("Email sent successfully!")
     except Exception as e:
-        print(f"Chatbot: Failed to send email. Error: {e}")
+        st.error(f"Error sending email: {e}")
 
-# Function to generate answers using OpenAI
-def generate_answer(query, context):
+# Function to extract PDF text
+def extract_pdf_text(file_path):
     try:
-        messages = [
-            {"role": "system", "content": "You are a helpful assistant with knowledge about the Aibytec website and the PDF document."},
-            {"role": "user", "content": f"Context: {context}\n\nQuestion: {query}"}
-        ]
+        reader = PdfReader(file_path)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        return text
+    except Exception as e:
+        st.error(f"Error reading PDF: {e}")
+        return ""
 
+# Function to scrape website content
+def scrape_website(url):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        return soup.get_text()
+    except Exception as e:
+        return f"Error scraping website: {e}"
+
+# Function to generate OpenAI response
+def chat_with_ai(user_question, website_text, pdf_text, chat_history):
+    combined_context = f"Website Content:\n{website_text}\n\nPDF Content:\n{pdf_text}"
+    messages = [{"role": "system", "content": "You are a helpful assistant. Use the provided content."}]
+    # Add full chat history
+    for entry in chat_history:
+        messages.append({"role": "user", "content": entry['user']})
+        messages.append({"role": "assistant", "content": entry['bot']})
+    messages.append({"role": "user", "content": f"{combined_context}\n\nQuestion: {user_question}"})
+
+    try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            temperature=0.0,
-            max_tokens=200
+            stream=False  # Faster response
         )
-        answer = response.choices[0].message['content'].strip()
-        return answer if answer else "I do not have this information."
+        return response['choices'][0]['message']['content']
     except Exception as e:
-        print(f"Chatbot: An error occurred while generating a response: {e}")
-        return "I do not have this information."
+        return f"Error generating response: {e}"
 
-# Initialize user data storage
-user_data_file = "user_data.pkl"
-
-# Load existing user data if available
-if os.path.exists(user_data_file):
-    with open(user_data_file, "rb") as file:
-        user_data = pickle.load(file)
-else:
-    user_data = {}
-
-# Function to store user data persistently
-def save_user_data(user_data):
-    with open(user_data_file, "wb") as file:
-        pickle.dump(user_data, file)
-
-# Function for chatbot interaction and response
-def chatbot_ui(user_input, user_name, user_email):
-    # Store user data
-    if user_name not in user_data:
-        user_data[user_name] = {"email": user_email}
-        save_user_data(user_data)
-        # Send user data to Gmail
-        send_email(user_name, user_email)
-
-    # Generate response using combined context
-    response = generate_answer(user_input, combined_context)
-    return response
-
+# ----------------------
 # Streamlit UI
-def create_chatbot_interface():
-    st.title("Aibytec Assistant")
+# ----------------------
 
-    # User input fields for name and email
-    user_name = st.text_input("Your Name", placeholder="Enter your name here")
-    user_email = st.text_input("Your Email", placeholder="Enter your email address")
+st.set_page_config(page_title="Student Profile & AI Chatbot", layout="wide")
 
-    # User input for chat
-    user_query = st.text_area("Ask me anything about Aibytec", placeholder="Enter your question here")
+# Session State Initialization
+if "page" not in st.session_state:
+    st.session_state['page'] = 'form'
+if "chat_history" not in st.session_state:
+    st.session_state['chat_history'] = []
 
-    # Button to submit the query
-    if st.button("Submit"):
-        if user_name and user_email and user_query:
-            response = chatbot_ui(user_query, user_name, user_email)
-            st.write(f"**Assistant:** {response}")
-        else:
-            st.warning("Please provide your name, email, and a question.")
+# ----------------------
+# PAGE 1: User Info Form
+# ----------------------
+if st.session_state['page'] == 'form':
+    st.title("Student Profile Submission")
+    with st.form(key="user_form"):
+        name = st.text_input("Name")
+        email = st.text_input("Email")
+        contact_no = st.text_input("Contact No.")  # Replaced Field of Interest
+        area_of_interest = st.text_area("Area of Interest")  # Replaced Study Preferences
+        submitted = st.form_submit_button("Submit")
+        
+        if submitted:
+            if name and email and contact_no and area_of_interest:
+                send_email(name, email, contact_no, area_of_interest)
+                st.session_state['page'] = 'chat'
+                st.rerun()
+            else:
+                st.warning("Please fill out all fields.")
+    
+    # Add Skip Button
+    if st.button("Skip and Chat"):
+        st.session_state['page'] = 'chat'
+        st.rerun()
 
-if __name__ == "__main__":
-    create_chatbot_interface()
+# ----------------------
+# PAGE 2: Chatbot Interface
+# ----------------------
+elif st.session_state['page'] == 'chat':
+    st.title("AIBYTEC'S Chatbot")
+
+    # Display chat history with background colors
+    for entry in st.session_state['chat_history']:
+        # User Message
+        st.markdown(
+            f"""
+            <div style="
+                background-color: #78bae4; 
+                padding: 10px; 
+                border-radius: 10px; 
+                margin-bottom: 10px;
+                width: fit-content;
+                max-width: 80%;
+            ">
+                <b>User:</b> {entry['user']}
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+
+        # Assistant Message
+        st.markdown(
+            f"""
+            <div style="
+                background-color: #D3D3D3; 
+                padding: 10px; 
+                border-radius: 10px; 
+                margin-bottom: 10px;
+                margin-left: auto;
+                width: fit-content;
+                max-width: 80%;
+            ">
+                <b>Assistant:</b> {entry['bot']}
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+
+    # Load PDF and Website content once
+    pdf_text = extract_pdf_text(PDF_PATH) if os.path.exists(PDF_PATH) else "PDF file not found."
+    website_text = scrape_website(WEBSITE_URL)
+
+    # Fixed input bar at bottom
+    user_input = st.chat_input("Type your question here...", key="user_input_fixed")
+
+    if user_input:
+        # Display bot's response
+        with st.spinner("Generating response..."):
+            bot_response = chat_with_ai(user_input, website_text, pdf_text, st.session_state['chat_history'])
+        
+        # Append user query and bot response to chat history
+        st.session_state['chat_history'].append({"user": user_input, "bot": bot_response})
+        
+        # Re-run to display updated chat history
+        st.rerun()
+
+
+
+
+
