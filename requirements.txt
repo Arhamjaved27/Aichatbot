@@ -1,7 +1,7 @@
 streamlit 
-smtplib 
 PyPDF2 
 openai==0.27.8 
 requests 
 langchain
 beautifulsoup4
+python-dotenv
