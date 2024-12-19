@@ -120,11 +120,11 @@ if st.session_state['page'] == 'form':
         st.markdown("""
             <style>
             .custom-button {
-                width: 30px !important;
+                width: 80px !important;
                 height: auto;
                 padding: 5px;
                 text-align: center;
-                display:inline-block;
+                display:inline !important;
             }
             </style>
         """, unsafe_allow_html=True)
