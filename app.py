@@ -117,7 +117,7 @@ if st.session_state['page'] == 'form':
 
         container = st.container(border=True)
         with st.container():
-            col1, col2 = st.columns([.2,.2], gap="small", vertical_alignment="top", border=False)  # The middle column is wider
+            col1, col2,col3 = st.columns([.2,.2,.6], gap="small", vertical_alignment="top", border=False)  # The middle column is wider
             with col1:
                 st.write("")  # Empty to align button on the left
                 submitted = st.form_submit_button("Submit")
@@ -126,8 +126,8 @@ if st.session_state['page'] == 'form':
                 st.write("")  # Empty to align button on the right
                 continue_chat = st.form_submit_button("Skip")
             
-            # with col3:
-            #     pass  # Empty column to take up space
+            with col3:
+                pass  # Empty column to take up space
                 
                 
         
