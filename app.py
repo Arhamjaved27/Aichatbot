@@ -124,6 +124,7 @@ if st.session_state['page'] == 'form':
                 height: auto;
                 padding: 5px;
                 text-align: center;
+                display:inline-block;
             }
             </style>
         """, unsafe_allow_html=True)
