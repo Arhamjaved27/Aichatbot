@@ -135,13 +135,13 @@ if st.session_state['page'] == 'form':
             </style>
         """, unsafe_allow_html=True)
         
-        # Use HTML to wrap buttons in the container
-        st.markdown("""
-            <div class="button-container">
-                <button class="custom-button">Submit</button>
-                <button class="custom-button" style="margin-left: 10px;">Cancel</button>
-            </div>
-        """, unsafe_allow_html=True)
+        # # Use HTML to wrap buttons in the container
+        # st.markdown("""
+        #     <div class="button-container">
+        #         <button class="custom-button">Submit</button>
+        #         <button class="custom-button" style="margin-left: 10px;">Cancel</button>
+        #     </div>
+        # """, unsafe_allow_html=True)
 
         with st.container():
             # Create three columns for alignment
@@ -149,10 +149,10 @@ if st.session_state['page'] == 'form':
             
             # Place the button in the desired column
             with col1:
-                st.write("")  # Empty to balance alignment
+                submitted = st.form_submit_button("Proceed to Chat ")
             
             with col2:
-                st.button("Submit")  # Button in the center column
+                continue_chat = st.form_submit_button(" Skip and Join Chat")
             
             with col3:
                 st.write("")  # Empty to balance alignment
