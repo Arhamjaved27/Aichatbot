@@ -116,39 +116,47 @@ if st.session_state['page'] == 'form':
         contact_no = st.text_input("Contact No.")
         area_of_interest = st.text_input("Area of Interest")
 
-        # Add custom CSS
+        # Add custom CSS for alignment
         st.markdown("""
             <style>
-            @media (max-width:'670')
-            {
-                background-color: balck;
+            .button-container {
+                display: flex;
+                justify-content: center;
+                align-items: center;
             }
             .custom-button {
-                width: 80px !important;
-                height: auto;
-                padding: 5px;
-                text-align: center;
-                display:inline !important;
+                padding: 10px 20px;
+                background-color: #007BFF;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
             }
             </style>
         """, unsafe_allow_html=True)
+        
+        # Use HTML to wrap buttons in the container
+        st.markdown("""
+            <div class="button-container">
+                <button class="custom-button">Submit</button>
+                <button class="custom-button" style="margin-left: 10px;">Cancel</button>
+            </div>
+        """, unsafe_allow_html=True)
+
         with st.container():
-            col1, col2, col3 = st.columns([0.2, 0.1, 0.7])
-        
+            # Create three columns for alignment
+            col1, col2, col3 = st.columns([1, 1, 1])  # Adjust proportions as needed
+            
+            # Place the button in the desired column
             with col1:
-                st.markdown(
-                    '<button class="custom-button" form="form1">Submit</button>',
-                    unsafe_allow_html=True,
-                )
+                st.write("")  # Empty to balance alignment
+            
             with col2:
-                st.markdown(
-                    '<button class="custom-button" form="form2">Skip</button>',
-                    unsafe_allow_html=True,
-                )
+                st.button("Submit")  # Button in the center column
+            
             with col3:
-                st.write("")  # Empty column
-                
-        
+                st.write("")  # Empty to balance alignment
+                    
         if submitted:
             if name and email and contact_no and area_of_interest:
                 send_email(name, email, contact_no, area_of_interest)
