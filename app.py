@@ -116,20 +116,32 @@ if st.session_state['page'] == 'form':
         contact_no = st.text_input("Contact No.")
         area_of_interest = st.text_input("Area of Interest")
 
-        container = st.container(border=True)
+        # Add custom CSS
+        st.markdown("""
+            <style>
+            .custom-button {
+                width: 30px !important;
+                height: auto;
+                padding: 5px;
+                text-align: center;
+            }
+            </style>
+        """, unsafe_allow_html=True)
         with st.container():
-            col1, col2,col3 = st.columns([.2,.1,.7], gap="small", vertical_alignment="top", border=False)  # The middle column is wider
+            col1, col2, col3 = st.columns([0.2, 0.1, 0.7])
+        
             with col1:
-                st.write("")  # Empty to align button on the left
-                submitted = st.form_submit_button("Submit")
-            
+                st.markdown(
+                    '<button class="custom-button" form="form1">Submit</button>',
+                    unsafe_allow_html=True,
+                )
             with col2:
-                st.write("")  # Empty to align button on the right
-                continue_chat = st.form_submit_button("Skip")
-            
+                st.markdown(
+                    '<button class="custom-button" form="form2">Skip</button>',
+                    unsafe_allow_html=True,
+                )
             with col3:
-                pass  # Empty column to take up space
-                
+                st.write("")  # Empty column
                 
         
         if submitted:
