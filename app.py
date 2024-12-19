@@ -7,21 +7,27 @@ import requests
 from bs4 import BeautifulSoup
 import openai
 import os
+from dotenv import load_dotenv
 
 # ----------------------
-# Configuration
+# Load Environment Variables
 # ----------------------
+load_dotenv()
 
-PDF_PATH = "./Aibytec fine tuned data.pdf"  # Path to your PDF
-WEBSITE_URL = "https://aibytec.com/"  # Target website URL
+SENDER_EMAIL = os.getenv("SENDER_EMAIL")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL")
+openai.api_key = os.getenv("OPENAI_API_KEY")
+PDF_PATH = os.getenv("PDF_PATH")
+WEBSITE_URL = os.getenv("WEBSITE_URL")
 
 # ----------------------
-# Functions
+# Functions and Rest of the Script
 # ----------------------
 
 # Function to send email
 def send_email(name, email, contact_no, area_of_interest):
-    subject = "New Student Profile Submission"
+    subject = "New User Profile Submission"
     body = f"""
     New Student Profile Submitted:
 
@@ -70,7 +76,6 @@ def scrape_website(url):
 def chat_with_ai(user_question, website_text, pdf_text, chat_history):
     combined_context = f"Website Content:\n{website_text}\n\nPDF Content:\n{pdf_text}"
     messages = [{"role": "system", "content": "You are a helpful assistant. Use the provided content."}]
-    # Add full chat history
     for entry in chat_history:
         messages.append({"role": "user", "content": entry['user']})
         messages.append({"role": "assistant", "content": entry['bot']})
@@ -80,14 +85,14 @@ def chat_with_ai(user_question, website_text, pdf_text, chat_history):
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages,
-            stream=False  # Faster response
+            stream=False
         )
         return response['choices'][0]['message']['content']
     except Exception as e:
         return f"Error generating response: {e}"
 
 # ----------------------
-# Streamlit UI
+# Streamlit UI and App Logic
 # ----------------------
 
 st.set_page_config(page_title="Student Profile & AI Chatbot", layout="wide")
@@ -102,13 +107,28 @@ if "chat_history" not in st.session_state:
 # PAGE 1: User Info Form
 # ----------------------
 if st.session_state['page'] == 'form':
-    st.title("Student Profile Submission")
+    st.markdown('<p style="font-size: 21px;"><b>Hi! Welcome to AIByTec</b></p>', unsafe_allow_html=True)
+    
     with st.form(key="user_form"):
         name = st.text_input("Name")
         email = st.text_input("Email")
-        contact_no = st.text_input("Contact No.")  # Replaced Field of Interest
-        area_of_interest = st.text_area("Area of Interest")  # Replaced Study Preferences
-        submitted = st.form_submit_button("Submit")
+        contact_no = st.text_input("Contact No.")
+        area_of_interest = st.text_input("Area of Interest")
+
+        # Create three columns for buttons: Submit (left), empty center, Continue Chat (right)
+        col1, col2, col3 = st.columns([1, 1, 4])  # The middle column is wider
+
+        with col1:
+            st.write("")  # Empty to align button on the left
+            submitted = st.form_submit_button("Submit")
+        
+        with col2:
+            st.write("")  # Empty to align button on the right
+            continue_chat = st.form_submit_button("skip to continue chat")
+            
+        
+        with col3:
+            pass  # Empty column to take up space
         
         if submitted:
             if name and email and contact_no and area_of_interest:
@@ -117,19 +137,17 @@ if st.session_state['page'] == 'form':
                 st.rerun()
             else:
                 st.warning("Please fill out all fields.")
-    
-    # Add Skip Button
-    if st.button("Skip and Chat"):
-        st.session_state['page'] = 'chat'
-        st.rerun()
+        
+        # If user clicks "Continue Chat with AIByTec"
+        if continue_chat:
+            st.session_state['page'] = 'chat'
+            st.rerun()
 
 # ----------------------
 # PAGE 2: Chatbot Interface
 # ----------------------
 elif st.session_state['page'] == 'chat':
-    st.title("AIBYTEC'S Chatbot")
-
-    # Display chat history with background colors
+    # Display chat history without headings
     for entry in st.session_state['chat_history']:
         # User Message
         st.markdown(
@@ -142,7 +160,7 @@ elif st.session_state['page'] == 'chat':
                 width: fit-content;
                 max-width: 80%;
             ">
-                <b>User:</b> {entry['user']}
+                {entry['user']}
             </div>
             """, 
             unsafe_allow_html=True
@@ -152,7 +170,7 @@ elif st.session_state['page'] == 'chat':
         st.markdown(
             f"""
             <div style="
-                background-color: #D3D3D3; 
+                background-color:  #D3D3D3; 
                 padding: 10px; 
                 border-radius: 10px; 
                 margin-bottom: 10px;
@@ -160,7 +178,7 @@ elif st.session_state['page'] == 'chat':
                 width: fit-content;
                 max-width: 80%;
             ">
-                <b>Assistant:</b> {entry['bot']}
+                {entry['bot']}
             </div>
             """, 
             unsafe_allow_html=True
@@ -183,8 +201,3 @@ elif st.session_state['page'] == 'chat':
         
         # Re-run to display updated chat history
         st.rerun()
-
-
-
-
-
