@@ -116,7 +116,7 @@ if st.session_state['page'] == 'form':
         area_of_interest = st.text_input("Area of Interest")
 
         # Create three columns for buttons: Submit (left), empty center, Continue Chat (right)
-        col1, col2, col3,col4 = st.columns(4)  # The middle column is wider
+        col1, col2, col3 = st.columns([1,1,5])  # The middle column is wider
 
         with col1:
             st.write("")  # Empty to align button on the left
@@ -128,8 +128,7 @@ if st.session_state['page'] == 'form':
         
         with col3:
             pass  # Empty column to take up space
-        with col4:
-            pass  # Empty column to take up space
+        
         
         
         if submitted:
