@@ -119,6 +119,10 @@ if st.session_state['page'] == 'form':
         # Add custom CSS
         st.markdown("""
             <style>
+            @media (max-width:'670')
+            {
+                background-color: balck;
+            }
             .custom-button {
                 width: 80px !important;
                 height: auto;
